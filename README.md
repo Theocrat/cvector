@@ -1,6 +1,6 @@
 # C Vectors
 
-This repository contains definitions for macros in C, that allow users to create structures and functions for implementing the vector data structure that is used in C++.
+This repository contains the file __cvector.h__, which has definitions for macros in C, that allow users to create structures and functions for implementing the vector data structure that is used in C++.
 
 ## Introduction
 
