@@ -65,10 +65,11 @@
  *      -------------------------------------
  *  
  *      // Define the vector data type
- *      typedef vectorType(double) doubleVector; <─── Semicolon needed
+ *      typedef vectorType() doubleVector; <─── Semicolon needed
  * 
  *      // Define the constructor
- *      doubleVector newDoubleVector() constructorMethod(double) <───┐
+ *      doubleVector newDoubleVector() 
+ *          constructorMethod(doubleVector, double)  <───────────────┐
  *                                                                   │
  *         macro expands into the body: no semicolon is required! ───┘
  * 
@@ -96,7 +97,7 @@
  *      Once the vector data type is defined, you can instantiate it with
  *      objects and fill them up with elements:
  * 
- *          doubleType irrationals = newDoubleType();
+ *          doubleVector irrationals = newDoubleVector();
  *          irrationals = appendDoubleVector(irrationals, 2.78);
  *          irrationals = appendDoubleVector(irrationals, 3.14);
  *          ^^^^^^^
