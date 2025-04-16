@@ -1,0 +1,8 @@
+# Random junky folders Visual Studio and Mac OS keep creating
+/.vscode
+/.DS_Store
+
+# Files I use to test the functionality of cvector.h
+main.c
+main
+a.out
