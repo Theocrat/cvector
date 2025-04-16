@@ -6,3 +6,6 @@
 main.c
 main
 a.out
+
+# Executables made from the sample-files I have here, when using make
+sample-string
