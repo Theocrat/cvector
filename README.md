@@ -143,6 +143,24 @@ enumerate(i, v, values) {
 }
 ```
 
+### Cleanup
+
+The `data` field is allocated a block of memory dynamically. This memory needs to be freed up, or it will cause memory leakages.
+
+The traditional way to free memory in C is the `free` method of STDLIB. But there
+is a danger when using `free` here. Suppose I make a vector variable named `vec`
+and insert three items into it. It will now have size 3, capacity 4, and a dynamically allocated array in the data field. If I free up the data field, that
+does not change the other two fields. 
+
+_Even though the vector is empty, its size and capacity fields lie and say otherwise!_
+
+If by some chance this vector is then iterated over using a loop or any of the 
+idioms above, the result is going to be a segmentation fault. To prevent that, 
+we need to provide an easy way to safely free up the memory. The `cleanup` macro provides this way – it sets the size and capacity to zero and frees the allocation.
+
+> __NOTE:__ Do _NOT_ attempt to append to a cleaned-up vector. It will cause segmentation fault.
+
+
 ## Philosphy and Design Decisions
 
 These macros will read in arguments for both data types, and the names of variables that need to be used as arguments in the functions etc. I have decided the ordering of the arguments in the macros to be like I describe here.
@@ -152,11 +170,11 @@ The arguments for any macro are of three kinds:
   - Element data type
   - Argument name
 
-For instance, consider a macro for defining the functions that append new elements to a vector. This function will need to know (1) the data type of the vector, the data type of the elements of the vector, and the variable name used for the item being appended to the vector, which is normally an argument to the append function.
+For instance, consider a macro for defining the functions that append new elements to a vector. This function will need to know (1) the data type of the vector, (2) the data type of the elements of the vector, and (3) the variable names in the list of arguments of the append function. Those same names will need to occur in the function body.
 
- If the macro expands into the body of a function, we will need to know what names those arguments were assigned in the name. The user must supply all of these. 
- 
- The ordering of the arguments in the macros must be:
+Since the macro expands into the body of a function, we will need to know what names those arguments were assigned in the name. The user must supply all of these. 
+
+The ordering of the arguments in the macros must be:
   1. Name of the vector data type.
   2. Name of the element data type.
   3. Names of the arguments to the functions, in order

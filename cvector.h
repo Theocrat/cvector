@@ -23,8 +23,8 @@
  *      
  *      This header is meant to be used seamlessly by users of high-level
  *      languages. This seamlessness cannot be achieved by restricting literals
- *      to long, ungainly names. Hence, I have taken the liberty to name two 
- *      of my macros `iterate` and `enumerate`. 
+ *      to long, ungainly names. Hence, I have taken the liberty to name three 
+ *      of my macros `iterate`, `enumerate`, and `cleanup`. 
  * 
  *      Of course, these may clash with the names of your methods. In case 
  *      they do, and you absolutely cannot change the names of those methods,
@@ -39,10 +39,11 @@
  *      collide with tokens of similar name if they occur in any other section
  *      of the codebase or the included headers (or external Assembly objects).
  *   
- *      (A) _mallocate_dynamically: Macro wrapper for malloc. Its pretty handy.
+ *      (A) _mallocate_: Macro wrapper for malloc. Its pretty handy.
  *      (B) __hidden_iterator: Iterator variable, used internally.
  *      (C) iterate: Macro for iterating a vector object.
  *      (D) enumerate: Macro for iterating a vector object, but with indices.
+ *      (E) cleanup: Macro for safely freeing pointers in vectors.
  *      
  *      (E) vectorType: Macro for defining new vector types
  *      (F) contructorMethod: Macro for defining constructors for vectors.
@@ -132,9 +133,46 @@
  *          // With enumerate
  *          int i, num;
  *          enumerate(i, num, irrationals) {
- *              printf("%lf is the %dth irrational number!\n", i, num);
+ *              printf("%lf is the %dth irrational number!\n", num, i);
  *          }
- *          
+ * 
+ *      SAFELY FREEING UP THE MEMORY
+ *      ----------------------------
+ * 
+ *      Vectors use dynamically allocated memory, which needs to be released
+ *      safely to the operating system. Once the memory is released, the `data`
+ *      pointer will be pointing at a non-allocated memory. At this point, it
+ *      should not be de-referenced.
+ * 
+ *      To ensure that the vector does not leave behind insecure trails, this
+ *      header defines a macro for safely cleaning up the memory. This is the
+ *      `cleanup` vector. It needs to be used with a semicolon, on a separate
+ *      statement of its own.
+ * 
+ *        // Sample cleaning
+ *        cleanup(irrationals);
+ * 
+ *      What this macro does is:
+ *          (1) Free the memory in the data field
+ *          (2) Set the size and capacity to 0
+ *      
+ *      This means that you need to reinitialize a cleaned vector variable with
+ *      the constructor method you define using the `constructorMethod` macro,
+ *      if you want to use it again.
+ * 
+ *      The size and capacity are set to zero to ensure that, in the event that
+ *      we iterate over the vector again using the built-in macros of this 
+ *      header, the iteration does not read the data field at all.
+ *      
+ *      NOTE: 
+ * 
+ *      Please avoid simply using `free(<name>.data)` to free up the
+ *      data field, since the field is freed but the size and capacity 
+ *      are as they were. 
+ *      
+ *      If perchance the `iterate` macro is used on the vector again, it would 
+ *      keep iterating until the size is reached, attempt to access the values 
+ *      in the data field, and produce a segmentation fault.
  */     
 
 #ifndef __C_VECTOR_H__
@@ -143,7 +181,7 @@
 // -- REQUIREMENTS: We need STDLIB (memory allocations), and this `new` macro --
 
 #include <stdlib.h>
-#define _mallocate_dynamically(dtype, size) (dtype *)malloc(sizeof(dtype) * size)
+#define _mallocate_(dtype, size) (dtype *)malloc(sizeof(dtype) * size)
 // -- STRUCT: We define the macro for creating structs to store vectors -- 
 
 #define vectorType(dtype) struct { \
@@ -155,14 +193,15 @@
 // -- FUNCTIONS: We define the four functions described in the README.md --
 
 #define constructorMethod(vtype, dtype) { \
-    vtype vec = {0, 1, NULL};  \
-    vec.data = _mallocate_dynamically(dtype, 1);  \
-    return vec;                \
+    vtype vec = {0, 1, NULL};          \
+    vec.data = _mallocate_(dtype, 1);  \
+    return vec;                        \
 }
 
 #define appendMethod(vtype, dtype, vector, item) { \
     vtype newVector = {vector.size + 1, vector.capacity, NULL}; \
-    while (newVector.capacity < newVector.size) {              \
+                                                                \
+    while (newVector.capacity < newVector.size) {               \
         newVector.capacity *= 2;                                \
     }                                                           \
                                                                 \
@@ -178,7 +217,7 @@
     while (vec3.capacity < vec3.size) {              \
         vec3.capacity *= 2;                          \
     }                                                \
-    vec3.data = _mallocate_dynamically(dtype, vec3.capacity);\
+    vec3.data = _mallocate_(dtype, vec3.capacity);   \
                                                      \
     int pos = 0;                                     \
                                                      \
@@ -212,13 +251,21 @@
         slice.capacity *= 2;                        \
     }                                               \
                                                     \
-    slice.data = _mallocate_dynamically(dtype, length); \
+    slice.data = _mallocate_(dtype, length);        \
     for (i = start, j = 0; i < stop; i++, j++) {    \
         slice.data[j] = vec.data[i];                \
     }                                               \
                                                     \
     return slice;                                   \
 }
+
+
+// -- CLEANUP: We define a macro to free up dynamically allocated memory --
+
+#define cleanup(vector)  \
+    vector.size = 0;     \
+    vector.capacity = 0; \
+    free(vector.data)    \
 
 
 // -- IDIOMS: We define `iterate` and `enumerate` as discussed --
